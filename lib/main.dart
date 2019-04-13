@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
+final GoogleSignIn _googleSignIn = GoogleSignIn();
+final FirebaseAuth _auth = FirebaseAuth.instance;
 
 void main() => runApp(new MyApp());
 
@@ -68,6 +73,27 @@ class _MyAppState extends State<MyApp> {
     setState(() {});
   }
 
+  Future<FirebaseUser> _handleSignIn() async {
+    final GoogleSignInAccount googleUser = await _googleSignIn.signIn();
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+    final AuthCredential credential = GoogleAuthProvider.getCredential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final FirebaseUser user = await _auth.signInWithCredential(credential);
+    final String idToken = await user.getIdToken();
+    print("signed in " + user.displayName);
+    print("id token is: " + idToken);
+    return user;
+  }
+
+  void _handleSignOut() {
+    _googleSignIn.signOut();
+    print("User Signed out");
+  }
+
   @override
   Widget build(BuildContext context) {
     return new MaterialApp(
@@ -80,7 +106,25 @@ class _MyAppState extends State<MyApp> {
             children: <Widget>[
               new Text(
                 textValue,
-              )
+              ),
+              new RaisedButton(
+                onPressed: () => _handleSignIn()
+                  .then((FirebaseUser user) => print(user))
+                  .catchError((e) => print(e)),
+                child: new Text("Sign In"),
+                color: Colors.green,
+              ),
+              new Padding(
+                padding: const EdgeInsets.all(10.0),
+              ),
+              new RaisedButton(
+                onPressed: _handleSignOut,
+                child: new Text("Sign out"),
+                color: Colors.red,
+              ),
+              new Padding(
+                padding: const EdgeInsets.all(10.0),
+              ),
             ],
           ),
         ),
